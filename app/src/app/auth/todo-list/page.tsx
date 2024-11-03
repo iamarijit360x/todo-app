@@ -1,3 +1,4 @@
+"use client";
 import { CREATE_TASK } from '@/app/graphql/mutation/createTask';
 import { DELETE_TASK } from '@/app/graphql/mutation/deleteTask';
 import { UPDATE_TASK } from '@/app/graphql/mutation/updateTask';

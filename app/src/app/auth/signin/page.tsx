@@ -5,36 +5,36 @@ import { useMutation } from '@apollo/client';
 import { useRouter } from 'next/navigation';
 import LOGIN_MUTATION from '@/app/graphql/mutation/signin';
 import { useAuth } from '@/app/context/AuthContext';
+
 const Signin = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
-    const [error, setError] = useState('');
+    const [error, setError] = useState<string | null>(null); // Define error as string or null
     const router = useRouter();
-    const {login}=useAuth()
+    const { login } = useAuth();
     const [showPassword, setShowPassword] = useState(false);
 
     const [signin, { loading }] = useMutation(LOGIN_MUTATION, {
         onCompleted: (data) => {
-            console.log(data)
-            login(data.login);
-            router.push('/'); 
+            console.log(data);
+            login(data.login); // Ensure data.login matches expected structure
+            router.push('/');
         },
         onError: (err) => {
-            setError(err.message);
+            setError(err.message); // Handle errors gracefully
         },
     });
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setError('');
+        setError(null); // Clear previous error
 
         try {
-            await signin(
-                { variables: 
-                    {
-                        loginUserInput:{ email, password }
-                    } 
-                });
+            await signin({
+                variables: {
+                    loginUserInput: { email, password },
+                },
+            });
         } catch (error) {
             setError('Login failed. Please try again.');
         }

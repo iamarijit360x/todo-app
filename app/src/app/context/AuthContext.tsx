@@ -1,27 +1,43 @@
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useApolloClient } from '@apollo/client';
 
+interface User {
+  name: string;
+  // Add other properties as needed
+}
+
 type AuthContextType = {
   isAuthenticated: boolean;
-  login: (data: { token: string; user: object }) => void;
+  login: (data: { token: string; user: User }) => void;
   logout: () => void;
   token: string;
-  user: object | null; // Assuming you want to store user info
+  user: User | null;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
-  const [token, setToken] = useState(localStorage.getItem('token') || "");
-  const [user, setUser] = useState<any>(() => {
-    const storedUser = localStorage.getItem('user');
-    return storedUser ? JSON.parse(storedUser) : null;
-  });
-
   const client = useApolloClient();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [token, setToken] = useState<string>('');
+  const [user, setUser] = useState<User | null>(null);
 
-  const login = (data: { token: string; user: object }) => {
+  useEffect(() => {
+    // Check localStorage only on the client side
+    const storedToken = localStorage.getItem('token');
+    const storedUser = localStorage.getItem('user');
+
+    if (storedToken) {
+      setToken(storedToken);
+      setIsAuthenticated(true);
+    }
+
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+    }
+  }, []); // Run this effect only once on mount
+
+  const login = (data: { token: string; user: User }) => {
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
 
@@ -32,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = () => {
     localStorage.clear();
-    setToken("");
+    setToken('');
     setUser(null);
     setIsAuthenticated(false);
 
@@ -49,7 +65,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
+    throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };

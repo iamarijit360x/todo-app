@@ -1,8 +1,7 @@
 "use client"
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
-import { AuthProvider, useAuth } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext";
 import { ApolloProvider } from "@apollo/client";
 import client from "./lib/aplloClient";
 

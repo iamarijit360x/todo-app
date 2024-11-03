@@ -15,7 +15,6 @@ const SignupPage = () => {
 
     const [signup, { loading }] = useMutation(SIGNUP_MUTATION, {
         onCompleted: (data) => {
-            // Store the token in localStorage or context
             router.push('/'); // Redirect to the homepage after successful signup
         },
         onError: (err) => {
