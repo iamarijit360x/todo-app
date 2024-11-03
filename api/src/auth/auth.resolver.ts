@@ -3,6 +3,8 @@ import { AuthService } from './auth.service';
 import { User } from './schemas/user.schema';
 import { UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/auth.guard'; // Adjust path as necessary
+import { CreateUserInput } from './dto/create-user.input';
+import { LoginUserInput } from './dto/login-user.input';
 
 @ObjectType()
 class AuthPayload {
@@ -22,19 +24,16 @@ export class AuthResolver {
   }
   @Mutation(() => User)
   async signup(
-    @Args('name') name: string,
-    @Args('email') email: string,
-    @Args('password') password: string,
-  ) {
-    return this.authService.register(name,email, password);
+    @Args('createUserInput') createUserInput: CreateUserInput,
+  ): Promise<User> {
+    return this.authService.register(createUserInput.name,createUserInput.email,createUserInput.password);
   }
 
   @Mutation(() => AuthPayload)
   async login(
-    @Args('email') email: string,
-    @Args('password') password: string,
+    @Args('loginUserInput') loginUserInput: LoginUserInput,
   ) :Promise<AuthPayload>{
-    const user = await this.authService.validateUser(email, password);
+    const user = await this.authService.validateUser(loginUserInput.email, loginUserInput.password);
     if (!user) {
       throw new Error('Invalid credentials');
     }

@@ -10,8 +10,9 @@ const Signin = () => {
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const router = useRouter();
-    const {login,user}=useAuth()
-    
+    const {login}=useAuth()
+    const [showPassword, setShowPassword] = useState(false);
+
     const [signin, { loading }] = useMutation(LOGIN_MUTATION, {
         onCompleted: (data) => {
             console.log(data)
@@ -28,7 +29,12 @@ const Signin = () => {
         setError('');
 
         try {
-            await signin({ variables: { email, password } });
+            await signin(
+                { variables: 
+                    {
+                        loginUserInput:{ email, password }
+                    } 
+                });
         } catch (error) {
             setError('Login failed. Please try again.');
         }
@@ -58,15 +64,24 @@ const Signin = () => {
                         <label htmlFor="password" className="block text-sm font-medium text-gray-700">
                             Password
                         </label>
-                        <input
-                            type="password"
-                            id="password"
-                            required
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            className="block w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-500"
-                            placeholder="••••••••"
-                        />
+                        <div className="relative">
+                            <input
+                                type={showPassword ? 'text' : 'password'}
+                                id="password"
+                                required
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="block w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring focus:ring-blue-500"
+                                placeholder="••••••••"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+                            >
+                                {showPassword ? 'Hide' : 'Show'}
+                            </button>
+                        </div>
                     </div>
                     <button
                         type="submit"

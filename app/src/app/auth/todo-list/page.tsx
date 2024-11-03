@@ -2,10 +2,9 @@ import { CREATE_TASK } from '@/app/graphql/mutation/createTask';
 import { DELETE_TASK } from '@/app/graphql/mutation/deleteTask';
 import { UPDATE_TASK } from '@/app/graphql/mutation/updateTask';
 import { GET_TASKS } from '@/app/graphql/queries/getTodos';
-import { useQuery, useMutation, useApolloClient } from '@apollo/client';
-import { useState, useEffect } from 'react';
-// import { useHistory } from 'react-router-dom'; // Import useHistory for navigation
-import debounce from 'lodash/debounce'; 
+import { useQuery, useMutation } from '@apollo/client';
+import { useState, useEffect, useCallback } from 'react';
+import debounce from 'lodash/debounce';
 import { UPDATE_STATUS } from '@/app/graphql/mutation/updateStatus';
 import { useAuth } from '@/app/context/AuthContext';
 
@@ -17,7 +16,6 @@ interface Task {
 }
 
 const TodoList = () => {
-  // const history = useHistory(); // Initialize useHistory
   const { loading, error, data } = useQuery(GET_TASKS);
   const [createTask] = useMutation(CREATE_TASK, {
     refetchQueries: [{ query: GET_TASKS }],
@@ -31,7 +29,8 @@ const TodoList = () => {
   const [updateStatus] = useMutation(UPDATE_STATUS, {
     refetchQueries: [{ query: GET_TASKS }],
   });
-  const {logout,user}=useAuth()
+  const { logout, user } = useAuth();
+
   const [tasks, setTasks] = useState<Task[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -63,7 +62,7 @@ const TodoList = () => {
     setNewTaskDescription('');
   };
 
-  const handleNewTaskChange = (setter: React.Dispatch<React.SetStateAction<string>>) => 
+  const handleNewTaskChange = (setter: React.Dispatch<React.SetStateAction<string>>) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setter(e.target.value);
     };
@@ -111,33 +110,39 @@ const TodoList = () => {
     }
   };
 
-  const handleUpdateStatus = async (taskId: any, newStatus: boolean) => {
-    try {
-      const { data } = await updateStatus({
-        variables: {
-          id: taskId,
-          completed: !newStatus,
-        },
-      });
-      console.log('Task updated:', data.updateStatus);
-    } catch (err) {
-      console.error('Error updating task status:', err);
-    }
-  };
+  const handleUpdateStatus = useCallback(
+    debounce(async (taskId: string, currentStatus: boolean) => {
+      try {
+        await updateStatus({
+          variables: {
+            id: taskId,
+            completed: !currentStatus,
+          },
+        });
+      } catch (err) {
+        console.error('Error updating task status:', err);
+      }
+    }, 400),
+    []
+  );
 
   const handleLogout = () => {
-
-
-    logout()
+    logout();
   };
 
+  useEffect(() => {
+    if (error) logout();
+  }, [error]);
+
   if (loading) return <p>Loading tasks...</p>;
-  if (error) return <p>Error loading tasks: {error.message}</p>;
 
   return (
-    <div className="container mx-auto mt-10 p-5 border rounded-lg shadow-lg bg-white">
-      <h1 className="text-3xl font-bold mb-5 text-center">Welcome {user?.name}</h1>
-      <div className="flex mb-5 justify-center">
+    <div className="container mx-auto mt-10 p-5 border rounded-lg shadow-lg bg-white max-w-2xl sm:max-w-3xl md:max-w-4xl lg:max-w-6xl">
+      <h1 className="text-2xl sm:text-3xl font-bold mb-5 text-center">
+        Welcome, {user?.name}
+      </h1>
+
+      <div className="flex mb-5 justify-center gap-4 flex-wrap">
         <button
           className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
           onClick={() => openModal()}
@@ -145,26 +150,31 @@ const TodoList = () => {
           Add Task
         </button>
         <button
-          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg ml-4 transition duration-200"
-          onClick={handleLogout} // Trigger logout on click
+          className="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200"
+          onClick={handleLogout}
         >
           Logout
         </button>
       </div>
 
-      <ul>
+      <ul className="space-y-2">
         {tasks.map((task) => (
-          <li key={task._id} className="flex items-center mb-2 p-2 border-b border-gray-200">
+          <li
+            key={task._id}
+            className="flex flex-wrap items-center mb-2 p-2 border-b border-gray-200"
+          >
             <span
-              className={`text-lg flex-1 ${task.completed ? 'line-through text-gray-500' : 'text-gray-800'}`}
+              className={`text-lg flex-1 ${
+                task.completed ? 'line-through text-gray-500' : 'text-gray-800'
+              }`}
             >
               {task.title} - <span className="italic text-sm">{task.description}</span>
             </span>
             <input
-              type="checkbox"
-              className="ml-2"
+              type="checkbox"              
+              className="transform scale-150 m-2.5 cursor-pointer"
               checked={task.completed}
-              onChange={(e) => handleUpdateStatus(task._id, task.completed)}
+              onChange={() => handleUpdateStatus(task._id, task.completed)}
             />
             <button
               className="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded-lg ml-2 transition duration-200"
@@ -182,11 +192,12 @@ const TodoList = () => {
         ))}
       </ul>
 
-      {/* Modal for adding/updating a task */}
       {isModalOpen && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-          <div className="bg-white p-5 rounded-lg shadow-lg w-1/3">
-            <h2 className="text-2xl font-bold mb-4">{isEditing ? 'Edit Task' : 'Add New Task'}</h2>
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 p-4 sm:p-6 lg:p-8">
+          <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-lg mx-4">
+            <h2 className="text-xl sm:text-2xl font-bold mb-4">
+              {isEditing ? 'Edit Task' : 'Add New Task'}
+            </h2>
             <input
               type="text"
               placeholder="Title"
@@ -201,9 +212,9 @@ const TodoList = () => {
               value={newTaskDescription}
               onChange={handleNewTaskChange(setNewTaskDescription)}
             />
-            <div className="flex justify-end">
+            <div className="flex justify-end space-x-2">
               <button
-                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg mr-2"
+                className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg"
                 onClick={closeModal}
               >
                 Cancel

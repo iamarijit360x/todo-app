@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useApolloClient } from '@apollo/client';
 
 type AuthContextType = {
@@ -14,14 +14,16 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [token, setToken] = useState(localStorage.getItem('token') || "");
-  const [user, setUser] = useState<any>(null); // You may want to type this based on your user structure
+  const [user, setUser] = useState<any>(() => {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
 
-  // Get the Apollo Client instance here
   const client = useApolloClient();
 
   const login = (data: { token: string; user: object }) => {
     localStorage.setItem('token', data.token);
-    localStorage.setItem('user', JSON.stringify(data.user)); // Store user as string
+    localStorage.setItem('user', JSON.stringify(data.user));
 
     setToken(data.token);
     setUser(data.user);
@@ -34,8 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setIsAuthenticated(false);
 
-    // Clear Apollo Client store here
-    client.clearStore(); // This is now valid as client is declared at the top level
+    client.clearStore();
   };
 
   return (
@@ -45,4 +46,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
+  }
+  return context;
+};
